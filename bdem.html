@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ԲՈԼՈՐԻՆ ԴԵՄ ԵՄ</title>
+    <style>
+        :root { 
+            --bg: #F2F2F2; /* Բաց մոխրագույն/սպիտակ ֆոն */
+            --card: #1A1A1A; /* Սև քարտ */
+            --card-border: #333333; 
+            --primary: #FFFFFF; /* Սպիտակ տեքստ սևի վրա */
+            --accent-red: #E31E24; /* Մաքուր կարմիր (Լոգոյի գույնը) */
+            --subtle-gray: #808080; /* Մոխրագույն տեքստի համար */
+        }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: var(--bg); color: #1A1A1A; text-align: center; padding: 10px; margin: 0; }
+        
+        /* Հիմնական կոնտեյներ */
+        .container { 
+            max-width: 420px; margin: 20px auto; background: var(--card); padding: 30px; 
+            border-radius: 0; border-top: 8px solid var(--accent-red); 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); color: var(--primary);
+        }
+        
+        h1 { font-size: 32px; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; margin-bottom: 30px; border-bottom: 4px solid var(--accent-red); display: inline-block; padding-bottom: 5px; }
+        
+        .setup-group { text-align: left; margin-bottom: 20px; }
+        label { font-size: 11px; color: var(--subtle-gray); font-weight: bold; display: block; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
+        
+        input, select { 
+            width: 100%; padding: 14px; border-radius: 4px; border: 1px solid #333; 
+            background: #262626; color: white; font-size: 16px; outline: none; box-sizing: border-box; 
+        }
+        input:focus { border-color: var(--accent-red); }
+
+        .player-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .player-name-input { flex: 1; }
+
+        /* Կոճակներ */
+        button.main-btn { 
+            width: 100%; padding: 18px; border-radius: 4px; border: none; 
+            font-size: 18px; font-weight: 900; cursor: pointer; text-transform: uppercase;
+            transition: 0.2s; margin-top: 10px; 
+        }
+        .btn-start { background: var(--accent-red); color: white; }
+        .btn-start:active { transform: translateY(2px); filter: brightness(0.9); }
+        
+        .btn-view { background: transparent; color: var(--subtle-gray); border: 1px solid #333; font-size: 11px; margin-top: 30px; }
+
+        /* Մինիմալ Իկոնկաներ */
+        .icon-btn { background: none; border: none; color: var(--subtle-gray); font-size: 18px; cursor: pointer; padding: 5px; }
+        .icon-btn:hover { color: var(--accent-red); }
+
+        /* Admin Modal */
+        #viewerModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; overflow-y: auto; z-index: 100; padding: 30px; box-sizing: border-box; color: white; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #222; }
+        .cat-title { color: var(--accent-red); text-transform: uppercase; font-size: 14px; margin-top: 40px; text-align: left; border-left: 3px solid var(--accent-red); padding-left: 10px; }
+        
+        .inline-add { display: flex; gap: 10px; margin-top: 15px; }
+        .inline-input { background: transparent; border: none; border-bottom: 2px solid #333; color: white; padding: 8px; flex: 1; outline: none; }
+        .inline-input:focus { border-bottom-color: var(--accent-red); }
+
+        .hidden { display: none; }
+        #loading { position: fixed; top: 15px; right: 15px; font-size: 10px; color: var(--accent-red); font-weight: bold; }
+
+        /* Դերերի քարտեր */
+        .role-box { padding: 60px 20px; margin: 30px 0; font-size: 28px; font-weight: 900; text-transform: uppercase; }
+        .spy-theme { background: var(--accent-red); color: white; }
+        .citizen-theme { background: white; color: black; }
+    </style>
+</head>
+<body>
+
+<div id="loading">LOADING...</div>
+
+<div class="container" id="menuScreen">
+    <h1 style="color: white;">ԲՈԼՈՐԻՆ <span style="color: var(--accent-red);">ԴԵՄ ԵՄ</span></h1>
+    
+    <div class="setup-group">
+        <label>Խաղացողների ցանկ</label>
+        <div id="playerInputsContainer"></div>
+        <button style="background:transparent; color:var(--subtle-gray); border:1px dashed #444; width:100%; padding:10px; cursor:pointer; font-size:11px; margin-top:5px;" onclick="addPlayerField()">+ ԱՎԵԼԱՑՆԵԼ ԱՆՈՒՆ</button>
+    </div>
+
+    <div class="setup-group" style="display:flex; gap:15px;">
+        <div style="flex:2">
+            <label>Թեմա</label>
+            <select id="categorySelect"></select>
+        </div>
+        <div style="flex:1">
+            <label>Լրտես</label>
+            <input type="number" id="spyCount" value="1" min="1">
+        </div>
+    </div>
+
+    <button class="main-btn btn-start" onclick="startGame()">ՍԿՍԵԼ ԽԱՂԸ</button>
+    <button class="main-btn btn-view" onclick="toggleViewer(true)">ԲԱԶԱՅԻ ԿԱՌԱՎԱՐՈՒՄ</button>
+</div>
+
+<div id="viewerModal" class="hidden">
+    <div style="display:flex; justify-content: space-between; align-items: center;">
+        <h2 style="letter-spacing: 2px; font-size: 20px;">ԱԴՄԻՆ ՊԱՆԵԼ</h2>
+        <button class="icon-btn" onclick="toggleViewer(false)" style="font-size: 30px; color: var(--accent-red);">✕</button>
+    </div>
+    <div id="viewerContent"></div>
+    <div style="height: 60px;"></div>
+</div>
+
+<div class="container hidden" id="passScreen">
+    <h1 id="playerTurnTitle" style="color:white;"></h1>
+    <p style="color:var(--subtle-gray)">ՀԵՐԹԸ ՔՈՆՆ Է</p>
+    <button class="main-btn btn-start" onclick="revealRole()">ՏԵՍՆԵԼ</button>
+</div>
+
+<div class="container hidden" id="roleScreen">
+    <div id="roleDisplay" class="role-box"></div>
+    <button class="main-btn btn-start" style="background: #333;" onclick="nextPlayer()">ԹԱՔՑՆԵԼ</button>
+</div>
+
+<script>
+    const SB_URL = "https://svxmabbzipfdsjaeuoei.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2eG1hYmJ6aXBmZHNqYWV1b2VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MzU1NjgsImV4cCI6MjA4OTUxMTU2OH0.Sz7y07tOj2IDK224LoQ7XpdpyFtdnM4GUtv9adgHqbU";
+
+    let rawData = [];
+    let categories = {};
+    let players = [];
+    let currentIdx = 0;
+    let editingId = null;
+
+    async function fetchWords() {
+        document.getElementById('loading').style.display = 'block';
+        try {
+            const res = await fetch(`${SB_URL}/rest/v1/spy_words?select=*&order=category.asc,word.asc`, {
+                headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` }
+            });
+            rawData = await res.json();
+            categories = {};
+            rawData.forEach(item => {
+                if(!categories[item.category]) categories[item.category] = [];
+                categories[item.category].push(item.word);
+            });
+            updateDropdown();
+            if(!document.getElementById('viewerModal').classList.contains('hidden')) renderViewer();
+        } catch (e) { console.error(e); }
+        document.getElementById('loading').style.display = 'none';
+    }
+
+    async function uploadInline(cat, inputId) {
+        const word = document.getElementById(inputId).value.trim();
+        if(!word) return;
+        document.getElementById('loading').style.display = 'block';
+        await fetch(`${SB_URL}/rest/v1/spy_words`, {
+            method: "POST",
+            headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ category: cat, word: word })
+        });
+        fetchWords();
+    }
+
+    async function updateWord(id, newWord) {
+        if(!newWord) return;
+        document.getElementById('loading').style.display = 'block';
+        await fetch(`${SB_URL}/rest/v1/spy_words?id=eq.${id}`, {
+            method: "PATCH",
+            headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ word: newWord })
+        });
+        editingId = null;
+        fetchWords();
+    }
+
+    async function deleteWord(id) {
+        if(!confirm("ՋՆՋԵ՞Լ")) return;
+        document.getElementById('loading').style.display = 'block';
+        await fetch(`${SB_URL}/rest/v1/spy_words?id=eq.${id}`, {
+            method: "DELETE",
+            headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Prefer": "return=minimal" }
+        });
+        fetchWords();
+    }
+
+    function renderViewer() {
+        const content = document.getElementById('viewerContent');
+        content.innerHTML = "";
+        const groups = {};
+        rawData.forEach(item => {
+            if(!groups[item.category]) groups[item.category] = [];
+            groups[item.category].push(item);
+        });
+
+        for (let cat in groups) {
+            content.innerHTML += `<h3 class="cat-title">${cat}</h3>`;
+            groups[cat].forEach(item => {
+                const isEditing = editingId === item.id;
+                content.innerHTML += `
+                <div class="list-item">
+                    ${isEditing ? 
+                        `<input type="text" id="edit-${item.id}" class="inline-input" value="${item.word}" style="border-bottom-color:var(--accent-red)">` : 
+                        `<span class="item-text" onclick="startEdit(${item.id})">${item.word}</span>`
+                    }
+                    <div style="display:flex; align-items:center;">
+                        ${isEditing ? 
+                            `<button class="icon-btn" style="color:var(--accent-red)" onclick="saveEdit(${item.id})">✓</button>
+                             <button class="icon-btn" onclick="cancelEdit()">✕</button>` : 
+                            `<button class="icon-btn" onclick="startEdit(${item.id})">✎</button>
+                             <button class="icon-btn" style="color:var(--accent-red)" onclick="deleteWord(${item.id})">✕</button>`
+                        }
+                    </div>
+                </div>`;
+            });
+            content.innerHTML += `
+            <div class="inline-add">
+                <input type="text" id="add-to-${cat}" class="inline-input" placeholder="+ ՆՈՐ ԲԱՌ">
+                <button class="icon-btn" style="color:var(--accent-red)" onclick="uploadInline('${cat}', 'add-to-${cat}')">＋</button>
+            </div>`;
+        }
+    }
+
+    function startEdit(id) { editingId = id; renderViewer(); }
+    function cancelEdit() { editingId = null; renderViewer(); }
+    function saveEdit(id) {
+        const val = document.getElementById(`edit-${id}`).value.trim();
+        updateWord(id, val);
+    }
+
+    function updateDropdown() {
+        const select = document.getElementById('categorySelect');
+        const oldVal = select.value;
+        select.innerHTML = '';
+        for (let cat in categories) {
+            let opt = document.createElement('option');
+            opt.value = cat;
+            opt.innerText = `${cat.toUpperCase()} (${categories[cat].length})`;
+            select.appendChild(opt);
+        }
+        if(oldVal && categories[oldVal]) select.value = oldVal;
+    }
+
+    function toggleViewer(show) {
+        document.getElementById('viewerModal').classList.toggle('hidden', !show);
+        if(show) renderViewer();
+    }
+
+    function addPlayerField(name = "") {
+        const container = document.getElementById('playerInputsContainer');
+        const div = document.createElement('div');
+        div.className = 'player-row';
+        div.innerHTML = `<input type="text" class="player-name-input" placeholder="ԱՆՈՒՆ" value="${name}">
+                         <button class="icon-btn" onclick="this.parentElement.remove()">✕</button>`;
+        container.appendChild(div);
+    }
+
+    function startGame() {
+        const names = Array.from(document.querySelectorAll('.player-name-input')).map(i => i.value.trim()).filter(n => n !== "");
+        const cat = document.getElementById('categorySelect').value;
+        const spyCount = parseInt(document.getElementById('spyCount').value) || 1;
+
+        if(names.length < 3) return alert("ՄԻՆԻՄՈՒՄ 3 ՀՈԳԻ");
+        const secretWord = categories[cat][Math.floor(Math.random() * categories[cat].length)];
+        players = names.map(n => ({ name: n, role: secretWord }));
+
+        let assignedSpies = 0;
+        while(assignedSpies < spyCount) {
+            let idx = Math.floor(Math.random() * players.length);
+            if(players[idx].role !== "ԼՐՏԵՍ") {
+                players[idx].role = "ԼՐՏԵՍ";
+                assignedSpies++;
+            }
+        }
+
+        currentIdx = 0;
+        showScreen('passScreen');
+        document.getElementById('playerTurnTitle').innerText = players[0].name.toUpperCase();
+    }
+
+    function revealRole() {
+        showScreen('roleScreen');
+        const role = players[currentIdx].role;
+        const card = document.getElementById('roleDisplay');
+        card.innerText = role;
+        card.className = "role-box " + (role === "ԼՐՏԵՍ" ? "spy-theme" : "citizen-theme");
+    }
+
+    function nextPlayer() {
+        currentIdx++;
+        if(currentIdx >= players.length) location.reload();
+        else { showScreen('passScreen'); document.getElementById('playerTurnTitle').innerText = players[currentIdx].name.toUpperCase(); }
+    }
+
+    function showScreen(id) {
+        ['menuScreen', 'passScreen', 'roleScreen'].forEach(s => document.getElementById(s).classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    addPlayerField("ԱՐԱՄ"); addPlayerField("ԱՆԻ"); addPlayerField("ԿԱՐԵՆ");
+    fetchWords();
+</script>
+</body>
+</html>
