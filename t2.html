@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ո՞Վ Է ԴԱՎԱՃԱՆԸ</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { 
+            --bg-մուգ: #1D2130; --քարտ-մուգ: #2A2F42; 
+            --շեշտ-նարնջագույն: #CC5A46; --շեշտ-կապույտ: #548496; 
+            --տեքստ-բեժ: #C2B2A3;
+        }
+
+        @font-face { font-family: 'Montserratarm-Bold'; src: url('./Montserratarm-Bold.otf') format('opentype'); }
+        @font-face { font-family: 'Montserratarm-Light'; src: url('./Montserratarm-Light.otf') format('opentype'); }
+
+        body { font-family: 'Montserratarm-Light', sans-serif; background-color: var(--bg-մուգ); color: var(--տեքստ-բեժ); text-align: center; padding: 20px 10px; margin: 0; }
+        .կոնտեյներ { max-width: 400px; margin: 0 auto; background: var(--քարտ-մուգ); padding: 20px; border-radius: 4px; border-bottom: 8px solid var(--շեշտ-նարնջագույն); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+        
+        h1 { font-size: 28px; font-family: 'Montserratarm-Bold'; color: var(--շեշտ-նարնջագույն); text-transform: uppercase; margin-bottom: 10px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #444; background: rgba(0,0,0,0.3); color: white; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
+        
+        .գլխավոր-կոճակ { width: 100%; padding: 18px; border: none; font-size: 14px; cursor: pointer; text-transform: uppercase; font-family: 'Montserratarm-Bold'; margin-top: 10px; }
+        .կոճակ-սկսել { background: var(--շեշտ-նարնջագույն); color: white; }
+        .կոճակ-ուրվագիծ { background: transparent; border: 1px solid #444; color: var(--տեքստ-բեժ); }
+
+        .խաղացողի-տող { display: flex; gap: 10px; margin-bottom: 8px; }
+        .սրբել-կոճակ { background: none; border: none; color: var(--շեշտ-նարնջագույն); cursor: pointer; font-size: 18px; }
+
+        #մուտքի-էկրան { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-մուգ); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .թաքնված { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="մուտքի-էկրան">
+    <div class="կոնտեյներ">
+        <h1>ՄՈՒՏՔ</h1>
+        <p style="font-size: 10px; color: var(--շեշտ-կապույտ); margin-bottom: 30px;">ԱՆՎՏԱՆԳՈՒԹՅԱՆ ՍՏՈՒԳՈՒՄ</p>
+        
+        <button class="գլխավոր-կոճակ" style="background: white; color: #1D2130;" onclick="մուտքGoogle()">
+            ՄՈՒՏՔ GOOGLE-ՈՎ
+        </button>
+
+        <div style="margin: 20px 0; opacity: 0.5;">ԿԱՄ</div>
+
+        <button class="գլխավոր-կոճակ կոճակ-ուրվագիծ" onclick="շարունակելՈրպեսՀյուր()">
+            ՇԱՐՈՒՆԱԿԵԼ ՈՐՊԵՍ ՀՅՈՒՐ
+        </button>
+    </div>
+</div>
+
+<div id="խաղի-մաս" class="թաքնված">
+    <div class="կոնտեյներ">
+        <div style="display:flex; justify-content: space-between; font-size: 10px; margin-bottom: 20px;">
+            <span id="օգտատիրոջ-անուն"></span>
+            <span style="cursor:pointer" onclick="դուրսԳալ()">ԵԼՔ ✕</span>
+        </div>
+        
+        <h1>Ո՞Վ Է ԴԱՎԱՃԱՆԸ</h1>
+        
+        <div style="text-align: left; margin-top: 20px;">
+            <label style="font-size: 10px; color: var(--շեշտ-կապույտ);">ԳՈՐԾԱԿԱԼՆԵՐ</label>
+            <div id="խաղացողների-ցանկ" style="margin-top: 10px;"></div>
+            <button class="կոճակ-ուրվագիծ" style="width:100%; border-style:dashed;" onclick="ավելացնելԴաշտ()">+ ԱՎԵԼԱՑՆԵԼ ԱՆՈՒՆ</button>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top: 20px; text-align: left;">
+            <div style="flex:2">
+                <label style="font-size: 10px; color: var(--շեշտ-կապույտ);">ԿԱՏԵԳՈՐԻԱ</label>
+                <select id="կատեգորիա-ընտրող"></select>
+            </div>
+            <div style="flex:1">
+                <label style="font-size: 10px; color: var(--շեշտ-կապույտ);">ԼՐՏԵՍ</label>
+                <input type="number" id="լրտեսի-քանակ" value="1" min="1">
+            </div>
+        </div>
+
+        <button class="գլխավոր-կոճակ կոճակ-սկսել" onclick="խաղըՍկսել()">ՍԿՍԵԼ ԽԱՂԸ</button>
+        <button id="ադմին-կոճակ" class="գլխավոր-կոճակ կոճակ-ուրվագիծ թաքնված">ՏՎՅԱԼՆԵՐԻ ՊԱՀՈՑ</button>
+    </div>
+</div>
+
+<script>
+    const SB_URL = "https://svxmabbzipfdsjaeuoei.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2xG1hYmJ6aXBmZHNqYWV1b2VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MzU1NjgsImV4cCI6MjA4OTUxMTU2OH0.Sz7y07tOj2IDK224LoQ7XpdpyFtdnM4GUtv9adgHqbU";
+    const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+    let ընթացիկՕգտատեր = null;
+    let բառեր = {};
+
+    // --- ՄՈՒՏՔԻ ՖՈՒՆԿՑԻԱՆԵՐ ---
+
+    async function մուտքGoogle() {
+        await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: window.location.origin }
+        });
+    }
+
+    function շարունակելՈրպեսՀյուր() {
+        ընթացիկՕգտատեր = null;
+        ցույցՏալԽաղը();
+        document.getElementById('օգտատիրոջ-անուն').innerText = "ՀՅՈՒՐ";
+    }
+
+    async function դուրսԳալ() {
+        await supabase.auth.signOut();
+        location.reload();
+    }
+
+    function ցույցՏալԽաղը() {
+        document.getElementById('մուտքի-էկրան').classList.add('թաքնված');
+        document.getElementById('խաղի-մաս').classList.remove('թաքնված');
+        բեռնելԽաղացողներին();
+        բեռնելԲառերը();
+    }
+
+    async function ստուգելՍեսիան() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            ընթացիկՕգտատեր = user;
+            document.getElementById('օգտատիրոջ-անուն').innerText = user.email.split('@')[0].toUpperCase();
+            
+            // Ադմինի ստուգում
+            const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+            if (profile?.is_admin) document.getElementById('ադմին-կոճակ').classList.remove('թաքնված');
+            
+            ցույցՏալԽաղը();
+        }
+    }
+
+    // --- ԽԱՂԱՑՈՂՆԵՐԻ ԿԱՌԱՎԱՐՈՒՄ ---
+
+    async function բեռնելԽաղացողներին() {
+        const ցանկ = document.getElementById('խաղացողների-ցանկ');
+        ցանկ.innerHTML = "";
+
+        if (ընթացիկՕգտատեր) {
+            const { data } = await supabase.from('user_players').select('name').order('created_at', { ascending: true });
+            if (data && data.length > 0) {
+                data.forEach(p => ավելացնելԴաշտ(p.name, false));
+                return;
+            }
+        } else {
+            const պահված = localStorage.getItem('հյուրի_խաղացողներ');
+            if (պահված) {
+                JSON.parse(պահված).forEach(n => ավելացնելԴաշտ(n, false));
+                return;
+            }
+        }
+        ["ԱՐԱՄ", "ԱՆԻ", "ԿԱՐԵՆ"].forEach(n => ավելացնելԴաշտ(n, false));
+    }
+
+    async function սինքրոնացնել() {
+        const անուններ = Array.from(document.querySelectorAll('.անուն-ինփութ')).map(i => i.value.trim()).filter(n => n);
+        
+        if (ընթացիկՕգտատեր) {
+            await supabase.from('user_players').delete().eq('user_id', ընթացիկՕգտատեր.id);
+            if (անուններ.length > 0) {
+                await supabase.from('user_players').insert(անուններ.map(n => ({ name: n, user_id: ընթացիկՕգտատեր.id })));
+            }
+        } else {
+            localStorage.setItem('հյուրի_խաղացողներ', JSON.stringify(անուններ));
+        }
+    }
+
+    function ավելացնելԴաշտ(անուն = "", սինք = true) {
+        const տող = document.createElement('div');
+        տող.className = 'խաղացողի-տող';
+        տող.innerHTML = `
+            <input type="text" class="անուն-ինփութ" value="${անուն}" placeholder="Անուն" onchange="սինքրոնացնել()">
+            <button class="սրբել-կոճակ" onclick="this.parentElement.remove(); սինքրոնացնել();">✕</button>
+        `;
+        document.getElementById('խաղացողների-ցանկ').appendChild(տող);
+        if (սինք) սինքրոնացնել();
+    }
+
+    // --- ԲԱՌԵՐԻ ԲԱԶԱ ---
+
+    async function բեռնելԲառերը() {
+        const { data } = await supabase.from('spy_words').select('*').order('category', { ascending: true });
+        բառեր = {};
+        data.forEach(item => {
+            if (!բառեր[item.category]) բառեր[item.category] = [];
+            բառեր[item.category].push(item.word);
+        });
+        
+        const ընտրող = document.getElementById('կատեգորիա-ընտրող');
+        ընտրող.innerHTML = "";
+        Object.keys(բառեր).forEach(կատ => {
+            let օպտ = document.createElement('option');
+            օպտ.value = օպտ.innerText = կատ;
+            ընտրող.appendChild(օպտ);
+        });
+    }
+
+    // Սկսել սեսիայի ստուգումը էջը բացելիս
+    ստուգելՍեսիան();
+</script>
+
+</body>
+</html>
