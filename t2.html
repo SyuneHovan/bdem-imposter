@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ո՞Վ Է ԴԱՎԱՃԱՆԸ // AGENT TERMINAL</title>
+    <style>
+        :root { 
+            --bg-dark: #1D2130; --card-dark: #2A2F42; 
+            --accent-terracotta: #CC5A46; --accent-turquoise: #548496; 
+            --text-beige: #C2B2A3; --ink-black: #0F121A;
+        }
+
+        body { 
+            font-family: sans-serif; background-color: var(--bg-dark); 
+            color: var(--text-beige); text-align: center; margin: 0; padding: 20px 10px; 
+        }
+
+        .container { 
+            max-width: 400px; margin: 0 auto; background: var(--card-dark); 
+            padding: 20px; border-radius: 4px; border-bottom: 8px solid var(--accent-terracotta); 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative;
+        }
+
+        h1 { font-size: 26px; color: var(--accent-terracotta); text-transform: uppercase; margin-bottom: 10px; }
+        .small-label { font-size: 10px; color: var(--accent-turquoise); text-transform: uppercase; display: block; text-align: left; margin-top: 15px; }
+
+        input, select { 
+            width: 100%; padding: 12px; border: 1px solid #444; background: rgba(0,0,0,0.3); 
+            color: white; font-size: 16px; margin-top: 5px; box-sizing: border-box; 
+        }
+
+        .main-btn { 
+            width: 100%; padding: 18px; border: none; font-size: 14px; cursor: pointer; 
+            text-transform: uppercase; font-weight: bold; margin-top: 15px; border-radius: 4px;
+        }
+
+        .btn-start { background: var(--accent-terracotta); color: white; }
+        .btn-outline { background: transparent; border: 1px solid #444; color: var(--text-beige); }
+
+        .player-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .del-btn { background: none; border: none; color: var(--accent-terracotta); cursor: pointer; font-size: 18px; }
+
+        #authOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .hidden { display: none !important; }
+        
+        .role-box { 
+            padding: 40px 20px; border: 2px solid var(--accent-terracotta); 
+            font-size: 24px; font-weight: bold; margin: 20px 0; color: white; 
+        }
+    </style>
+</head>
+<body>
+
+<div id="authOverlay">
+    <div class="container">
+        <h1>ՄՈՒՏՔ</h1>
+        <button id="googleBtn" class="main-btn" style="background: white; color: black; display: none;" onclick="loginGoogle()">ՄՈՒՏՔ GOOGLE-ՈՎ</button>
+        <div id="orText" style="margin: 15px 0; opacity: 0.5; display: none;">ԿԱՄ</div>
+        <button class="main-btn btn-outline" onclick="enterAsGuest()">ՇԱՐՈՒՆԱԿԵԼ ՈՐՊԵՍ ՀՅՈՒՐ</button>
+    </div>
+</div>
+
+<div id="mainUI" class="hidden">
+    <div class="container" id="setupScreen">
+        <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 10px;">
+            <span id="userTag" style="color: var(--accent-turquoise);"></span>
+            <span style="cursor: pointer;" onclick="location.reload()">ԵԼՔ ✕</span>
+        </div>
+        <h1>Ո՞Վ Է ԴԱՎԱՃԱՆԸ</h1>
+        
+        <span class="small-label">Գործակալներ</span>
+        <div id="playerInputs" style="margin-top: 10px;"></div>
+        <button class="btn-outline" style="width: 100%; border-style: dashed; padding: 10px; margin-top: 5px;" onclick="addPlayerField()">+ ԱՎԵԼԱՑՆԵԼ ԱՆՈՒՆ</button>
+
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 2;">
+                <span class="small-label">Կատեգորիա</span>
+                <select id="catSelect"></select>
+            </div>
+            <div style="flex: 1;">
+                <span class="small-label">Լրտես</span>
+                <input type="number" id="spyCount" value="1" min="1">
+            </div>
+        </div>
+
+        <button class="main-btn btn-start" onclick="startGame()">ՍԿՍԵԼ ԽԱՂԸ</button>
+    </div>
+
+    <div class="container hidden" id="passScreen">
+        <h2 id="turnName" style="color: white; text-transform: uppercase;"></h2>
+        <p style="color: var(--accent-turquoise);">ՀԵՐԹԸ ՔՈՆՆ Է</p>
+        <button class="main-btn btn-start" onclick="showRole()">ՏԵՍՆԵԼ ԴԵՐԸ</button>
+    </div>
+
+    <div class="container hidden" id="roleScreen">
+        <div id="roleDisplay" class="role-box"></div>
+        <button class="main-btn btn-start" onclick="nextStep()">ԹԱՔՑՆԵԼ</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+    const SB_URL = "https://svxmabbzipfdsjaeuoei.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2xG1hYmJ6aXBmZHNqYWV1b2VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MzU1NjgsImV4cCI6MjA4OTUxMTU2OH0.Sz7y07tOj2IDK224LoQ7XpdpyFtdnM4GUtv9adgHqbU";
+    
+    let supabase;
+    let currentUser = null;
+    let categories = {};
+    let gamePlayers = [];
+    let currentIdx = 0;
+
+    // --- ՄՈՒՏՔԻ ՄԱՍ ---
+    function initSupabase() {
+        if (typeof window.supabase !== 'undefined') {
+            supabase = window.supabase.createClient(SB_URL, SB_KEY);
+            document.getElementById('googleBtn').style.display = 'block';
+            document.getElementById('orText').style.display = 'block';
+            supabase.auth.getUser().then(({data}) => { if(data?.user) enterGame(data.user); });
+        }
+    }
+
+    async function loginGoogle() {
+        await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+    }
+
+    function enterAsGuest() { enterGame(null); }
+
+    function enterGame(user) {
+        currentUser = user;
+        document.getElementById('authOverlay').classList.add('hidden');
+        document.getElementById('mainUI').classList.remove('hidden');
+        document.getElementById('userTag').innerText = user ? user.email.toUpperCase() : "ՀՅՈՒՐ (GUEST)";
+        loadPlayers();
+        fetchWords();
+    }
+
+    // --- ԽԱՂԱՑՈՂՆԵՐԻ ՄԱՍ ---
+    function addPlayerField(name = "") {
+        const div = document.createElement('div');
+        div.className = 'player-row';
+        div.innerHTML = `<input type="text" class="p-input" value="${name}" onchange="savePlayers()">
+                         <button class="del-btn" onclick="this.parentElement.remove(); savePlayers();">✕</button>`;
+        document.getElementById('playerInputs').appendChild(div);
+    }
+
+    function loadPlayers() {
+        const cont = document.getElementById('playerInputs');
+        cont.innerHTML = "";
+        let names = ["ԱՐԱՄ", "ԱՆԻ", "ԿԱՐԵՆ"];
+        if (!currentUser) {
+            const saved = localStorage.getItem('spy_guest_names');
+            if (saved) names = JSON.parse(saved);
+        }
+        names.forEach(n => addPlayerField(n));
+    }
+
+    function savePlayers() {
+        const names = Array.from(document.querySelectorAll('.p-input')).map(i => i.value.trim()).filter(n => n);
+        if (!currentUser) localStorage.setItem('spy_guest_names', JSON.stringify(names));
+    }
+
+    // --- ԲԱՌԵՐԻ ՄԱՍ ---
+    async function fetchWords() {
+        if (!supabase) return;
+        const { data } = await supabase.from('spy_words').select('*');
+        categories = {};
+        data.forEach(d => {
+            if (!categories[d.category]) categories[d.category] = [];
+            categories[d.category].push(d.word);
+        });
+        const sel = document.getElementById('catSelect');
+        sel.innerHTML = Object.keys(categories).map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    // --- ԽԱՂԻ ՏՐԱՄԱԲԱՆՈՒԹՅՈՒՆ ---
+    function startGame() {
+        const names = Array.from(document.querySelectorAll('.p-input')).map(i => i.value.trim()).filter(n => n);
+        if (names.length < 3) return alert("Անհրաժեշտ է առնվազն 3 խաղացող");
+
+        const cat = document.getElementById('catSelect').value;
+        const spyCount = parseInt(document.getElementById('spyCount').value) || 1;
+        const words = categories[cat];
+        const secretWord = words[Math.floor(Math.random() * words.length)];
+
+        // Ստեղծում ենք խաղացողների ցանկը
+        gamePlayers = names.map(n => ({ name: n, role: secretWord }));
+        
+        // Ընտրում ենք լրտեսներին
+        let spiesSet = 0;
+        while (spiesSet < spyCount) {
+            let r = Math.floor(Math.random() * gamePlayers.length);
+            if (gamePlayers[r].role !== "ԼՐՏԵՍ") {
+                gamePlayers[r].role = "ԼՐՏԵՍ";
+                spiesSet++;
+            }
+        }
+
+        currentIdx = 0;
+        showPassScreen();
+    }
+
+    function showPassScreen() {
+        document.getElementById('setupScreen').classList.add('hidden');
+        document.getElementById('roleScreen').classList.add('hidden');
+        document.getElementById('passScreen').classList.remove('hidden');
+        document.getElementById('turnName').innerText = gamePlayers[currentIdx].name;
+    }
+
+    function showRole() {
+        document.getElementById('passScreen').classList.add('hidden');
+        document.getElementById('roleScreen').classList.remove('hidden');
+        document.getElementById('roleDisplay').innerText = gamePlayers[currentIdx].role;
+    }
+
+    function nextStep() {
+        currentIdx++;
+        if (currentIdx >= gamePlayers.length) {
+            alert("Բոլորը տեսան իրենց դերերը։ Սկսե՛ք քննարկումը։");
+            document.getElementById('passScreen').classList.add('hidden');
+            document.getElementById('roleScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.remove('hidden');
+        } else {
+            showPassScreen();
+        }
+    }
+
+    // Աշխատեցնել Supabase-ը
+    window.addEventListener('load', initSupabase);
+</script>
+
+</body>
+</html>
