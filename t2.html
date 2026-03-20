@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ո՞Վ Է ԴԱՎԱՃԱՆԸ</title>
+    <style>
+        :root { --bg: #1D2130; --card: #2A2F42; --accent: #CC5A46; --text: #C2B2A3; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); text-align: center; margin: 0; padding: 20px; }
+        .container { max-width: 400px; margin: 0 auto; background: var(--card); padding: 20px; border-bottom: 8px solid var(--accent); border-radius: 4px; }
+        .main-btn { width: 100%; padding: 18px; border: none; font-size: 14px; cursor: pointer; text-transform: uppercase; font-weight: bold; margin-top: 10px; display: block; border-radius: 4px; }
+        #authOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .hidden { display: none !important; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; box-sizing: border-box; background: rgba(0,0,0,0.2); color: white; border: 1px solid #444; }
+        .player-row { display: flex; gap: 5px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="authOverlay">
+    <div class="container">
+        <h1 style="color: var(--accent);">ՄՈՒՏՔ</h1>
+        
+        <button id="googleBtn" class="main-btn" style="background: white; color: black; display: none;" onclick="մուտքGoogle()">ՄՈՒՏՔ GOOGLE-ՈՎ</button>
+        
+        <div id="orDivider" style="margin: 15px 0; opacity: 0.5; display: none;">ԿԱՄ</div>
+
+        <button class="main-btn" style="background: transparent; border: 1px solid #444; color: white;" onclick="մտնելՈրպեսՀյուր()">
+            ՇԱՐՈՒՆԱԿԵԼ ՈՐՊԵՍ ՀՅՈՒՐ
+        </button>
+    </div>
+</div>
+
+<div id="mainUI" class="hidden">
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 10px;">
+            <span id="userNameDisplay"></span>
+            <span style="cursor: pointer;" onclick="location.reload()">ԵԼՔ ✕</span>
+        </div>
+        <h1 style="color: var(--accent);">Ո՞Վ Է ԴԱՎԱՃԱՆԸ</h1>
+        <div id="playerList"></div>
+        <button onclick="ավելացնելԴաշտ()" style="width: 100%; background: none; border: 1px dashed #555; color: white; padding: 10px; margin-top: 5px; cursor: pointer;">+ ԱՎԵԼԱՑՆԵԼ</button>
+        <button class="main-btn" style="background: var(--accent); color: white; margin-top: 20px;">ՍԿՍԵԼ ԽԱՂԸ</button>
+    </div>
+</div>
+
+<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initSupabase()"></script>
+
+<script>
+    const SB_URL = "https://svxmabbzipfdsjaeuoei.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2xG1hYmJ6aXBmZHNqYWV1b2VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MzU1NjgsImV4cCI6MjA4OTUxMTU2OH0.Sz7y07tOj2IDK224LoQ7XpdpyFtdnM4GUtv9adgHqbU";
+    
+    let supabase;
+    let currentUser = null;
+
+    // ԱՅՍ ՖՈՒՆԿՑԻԱՆ ԿԱՇԽԱՏԻ ԱՆՄԻՋԱՊԵՍ
+    function մտնելՈրպեսՀյուր() {
+        enterGame(null);
+    }
+
+    // ԱՅՍ ՖՈՒՆԿՑԻԱՆ ԿԱՇԽԱՏԻ ՄԻԱՅՆ SUPABASE-Ը ԲԵՌՆՎԵԼՈՒՑ ՀԵՏՈ
+    function initSupabase() {
+        try {
+            supabase = window.supabase.createClient(SB_URL, SB_KEY);
+            document.getElementById('googleBtn').style.display = 'block';
+            document.getElementById('orDivider').style.display = 'block';
+            
+            // Ստուգում ենք արդեն մուտք եղած յուզերին
+            supabase.auth.getUser().then(({ data }) => {
+                if (data?.user) enterGame(data.user);
+            });
+        } catch (e) {
+            console.error("Supabase-ը չբեռնվեց:", e);
+        }
+    }
+
+    async function մուտքGoogle() {
+        if (!supabase) return;
+        await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: window.location.origin }
+        });
+    }
+
+    function enterGame(user) {
+        currentUser = user;
+        document.getElementById('authOverlay').classList.add('hidden');
+        document.getElementById('mainUI').classList.remove('hidden');
+        document.getElementById('userNameDisplay').innerText = user ? user.email.toUpperCase() : "ՀՅՈՒՐ";
+        
+        loadPlayers();
+    }
+
+    function ավելացնելԴաշտ(name = "") {
+        const row = document.createElement('div');
+        row.className = 'player-row';
+        row.innerHTML = `<input type="text" class="p-input" value="${name}" placeholder="Անուն" onchange="savePlayers()">
+                         <button onclick="this.parentElement.remove(); savePlayers();" style="background:none; border:none; color:red; cursor:pointer;">✕</button>`;
+        document.getElementById('playerList').appendChild(row);
+    }
+
+    function loadPlayers() {
+        const list = document.getElementById('playerList');
+        list.innerHTML = "";
+        let names = ["ԱՐԱՄ", "ԱՆԻ", "ԿԱՐԵՆ"];
+
+        if (!currentUser) {
+            const local = localStorage.getItem('guest_players');
+            if (local) names = JSON.parse(local);
+        }
+        names.forEach(n => ավելացնելԴաշտ(n));
+    }
+
+    function savePlayers() {
+        const names = Array.from(document.querySelectorAll('.p-input')).map(i => i.value.trim()).filter(n => n);
+        if (!currentUser) {
+            localStorage.setItem('guest_players', JSON.stringify(names));
+        }
+    }
+</script>
+
+</body>
+</html>
