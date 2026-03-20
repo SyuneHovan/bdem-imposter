@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ԲՈԼՈՐԻՆ ԴԵՄ ԵՄ</title>
+    <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --bg: #1A1A1A; --accent-red: #E31E24; --subtle-gray: #808080; }
+        body { font-family: sans-serif; background: var(--bg); color: white; text-align: center; margin: 0; padding: 15px; }
+        .container { max-width: 420px; margin: 0 auto; }
+        h1 { font-size: 28px; font-weight: 900; border-bottom: 4px solid var(--accent-red); display: inline-block; text-transform: uppercase; }
+        .main-btn { width: 100%; padding: 18px; border-radius: 4px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 15px; }
+        .btn-red { background: var(--accent-red); color: white; }
+        .btn-outline { background: transparent; border: 1px solid #444; color: var(--subtle-gray); }
+        .hidden { display: none !important; }
+        input, select { width: 100%; padding: 14px; background: #262626; color: white; border: 1px solid #333; margin-top: 5px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div id="authScreen" class="container">
+    <h1 style="margin-top: 50px;">ԲՈԼՈՐԻՆ <span style="color: var(--accent-red);">ԴԵՄ ԵՄ</span></h1>
+    <p style="color: gray; font-size: 10px;">V2.0 - STABLE MODE</p>
+    
+    <button class="main-btn btn-red" onclick="handleLogin()">GOOGLE ՄՈՒՏՔ</button>
+    
+    <button class="main-btn btn-outline" onclick="openMenu()">ՇԱՐՈՒՆԱԿԵԼ ՈՐՊԵՍ ՀՅՈՒՐ</button>
+</div>
+
+<div id="menuScreen" class="container hidden">
+    <h1 style="font-size: 20px;">ԽԱՂԻ ԿԱՐԳԱՎՈՐՈՒՄ</h1>
+    <div id="pList" style="text-align: left; margin-top: 20px;"></div>
+    <button class="btn-outline" style="width:100%; padding:10px; border-style:dashed; margin-top:5px;" onclick="addP()">+ ԱՎԵԼԱՑՆԵԼ ԱՆՈՒՆ</button>
+
+    <div style="display:flex; gap:10px; text-align:left; margin-top: 20px;">
+        <div style="flex:2"><label style="font-size:10px; color:gray;">ԹԵՄԱ</label>
+            <select id="topic"><option>Ընդհանուր</option><option>Ֆիլմեր</option></select>
+        </div>
+        <div style="flex:1"><label style="font-size:10px; color:gray;">ԼՐՏԵՍ</label>
+            <input type="number" id="spies" value="1">
+        </div>
+    </div>
+    <button class="main-btn btn-red" onclick="start()">ՍԿՍԵԼ ԽԱՂԸ</button>
+</div>
+
+<div id="gameUI" class="container hidden">
+    <h2 id="who" style="font-size: 30px; margin-top: 50px;"></h2>
+    <div id="roleBox" class="hidden" style="padding: 50px 20px; font-size: 24px; font-weight: bold; margin: 20px 0;"></div>
+    <button id="actionBtn" class="main-btn btn-red" onclick="handleAction()">ՏԵՍՆԵԼ ԴԵՐԸ</button>
+</div>
+
+<script>
+    let players = [];
+    let currentIdx = 0;
+    let words = { "Ընդհանուր": ["Դպրոց", "Հիվանդանոց", "Շուկա", "Օդանավակայան", "Թատրոն"] };
+
+    // 1. Բացել Մենյուն (Առանց բազային սպասելու)
+    function openMenu() {
+        document.getElementById('authScreen').classList.add('hidden');
+        document.getElementById('menuScreen').classList.remove('hidden');
+        addP("ԱՐԱՄ"); addP("ԱՆԻ"); addP("ԿԱՐԵՆ");
+    }
+
+    function addP(val = "") {
+        const d = document.createElement('div');
+        d.innerHTML = `<input type="text" class="p-in" value="${val}" style="width:85%; display:inline-block; margin-bottom:5px;">
+                       <span onclick="this.parentElement.remove()" style="color:red; cursor:pointer; padding-left:10px;">✕</span>`;
+        document.getElementById('pList').appendChild(d);
+    }
+
+    // 2. Խաղի մեկնարկ
+    function start() {
+        const names = Array.from(document.querySelectorAll('.p-in')).map(i => i.value.trim()).filter(n => n);
+        if(names.length < 3) return alert("Գրեք առնվազն 3 անուն");
+
+        const secret = words["Ընդհանուր"][Math.floor(Math.random() * words["Ընդհանուր"].length)];
+        players = names.map(n => ({ name: n, role: secret }));
+        
+        // Լրտեսի ընտրություն
+        const spyIdx = Math.floor(Math.random() * players.length);
+        players[spyIdx].role = "ԼՐՏԵՍ";
+
+        currentIdx = 0;
+        showTurn();
+    }
+
+    function showTurn() {
+        document.getElementById('menuScreen').classList.add('hidden');
+        document.getElementById('gameUI').classList.remove('hidden');
+        document.getElementById('roleBox').classList.add('hidden');
+        document.getElementById('who').innerText = players[currentIdx].name.toUpperCase();
+        document.getElementById('actionBtn').innerText = "ՏԵՍՆԵԼ ԴԵՐԸ";
+    }
+
+    function handleAction() {
+        const box = document.getElementById('roleBox');
+        const btn = document.getElementById('actionBtn');
+
+        if (box.classList.contains('hidden')) {
+            box.classList.remove('hidden');
+            box.innerText = players[currentIdx].role;
+            box.style.background = players[currentIdx].role === "ԼՐՏԵՍ" ? "#E31E24" : "white";
+            box.style.color = players[currentIdx].role === "ԼՐՏԵՍ" ? "white" : "black";
+            btn.innerText = "ԹԱՔՑՆԵԼ";
+        } else {
+            currentIdx++;
+            if (currentIdx >= players.length) {
+                alert("Բոլորը տեսան: Սկսեք քննարկումը:");
+                location.reload();
+            } else {
+                showTurn();
+            }
+        }
+    }
+
+    // Google Login (եթե SDK-ն բեռնվի)
+    async function handleLogin() {
+        if (typeof supabase === 'undefined') {
+            alert("Բազայի գրադարանը չի բեռնվել: Փորձեք բացել Chrome-ով:");
+            return;
+        }
+        // Այստեղ կավելացնես քո signInWithOAuth կոդը
+    }
+</script>
+</body>
+</html>
