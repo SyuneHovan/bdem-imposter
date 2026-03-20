@@ -15,6 +15,12 @@
             --ink-black: #0F121A;
         }
 
+        @font-face {
+    font-family: 'Narek';
+    src: url('GHEANarek.woff2') format('woff2');
+}
+        
+
         body::before {
             content: "";
             position: fixed;
@@ -26,7 +32,8 @@
         }
 
         body { 
-            font-family: 'Courier New', Courier, monospace; 
+            /*font-family: 'Courier New', Courier, monospace;*/
+            font-family: 'Narek', sans-serif;
             background-color: var(--bg-dark); 
             color: var(--text-beige); 
             text-align: center; 
