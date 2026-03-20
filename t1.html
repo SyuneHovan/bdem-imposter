@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ո՞Վ Է ԴԱՎԱՃԱՆԸ</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { 
+            --bg-dark: #1D2130; 
+            --card-dark: #2A2F42; 
+            --accent-bordo: #6F3A3A; 
+            --accent-terracotta: #CC5A46; 
+            --accent-turquoise: #548496; 
+            --text-beige: #C2B2A3; 
+            --ink-black: #0F121A;
+        }
+
+        @font-face { font-family: 'Montserratarm-Bold'; src: url('./Montserratarm-Bold.otf') format('opentype'); }
+        @font-face { font-family: 'Montserratarm-Light'; src: url('./Montserratarm-Light.otf') format('opentype'); }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.05; pointer-events: none; z-index: 9999;
+        }
+
+        body { font-family: 'Montserratarm-Light', sans-serif; background-color: var(--bg-dark); color: var(--text-beige); text-align: center; padding: 20px 10px; margin: 0; letter-spacing: .8px; }
+
+        .container { max-width: 400px; margin: 0 auto; background: var(--card-dark); padding: 20px; border-radius: 4px; border-bottom: 8px solid var(--accent-terracotta); box-shadow: 0 20px 50px rgba(0,0,0,0.3); position: relative; }
+
+        h1 { font-size: 32px; font-family: 'Montserratarm-Bold', sans-serif; text-transform: uppercase; letter-spacing: 3px; color: var(--accent-terracotta); margin: 0; text-shadow: 2px 2px 0px var(--ink-black); margin-bottom: 10px; }
+
+        .setup-group { text-align: left; margin-bottom: 20px; }
+        label { font-size: 10px; color: var(--accent-turquoise); font-weight: bold; display: block; text-transform: uppercase; margin-bottom: 8px; }
+
+        input, select { width: 100%; padding: 12px; border: 1px solid #444; height: 44px; background: rgba(0,0,0,0.3); color: white; font-size: 16px; outline: none; box-sizing: border-box; margin-bottom: 10px; }
+
+        button.main-btn { width: 100%; padding: 18px; border: none; font-size: 16px; cursor: pointer; text-transform: uppercase; margin-top: 10px; font-family: 'Montserratarm-Bold', sans-serif; }
+        .btn-start { background: var(--accent-terracotta); color: white; }
+        .btn-view { background: transparent; color: var(--accent-turquoise); border: 1px solid var(--accent-turquoise); font-size: 11px; margin-top: 30px; }
+        .player-row {display: flex;justify-content: space-between;gap: 10px;}
+        div#playerInputsContainer {display: flex;flex-direction: column;gap: 8px;}
+        .small-text { font-size: 7px; letter-spacing: 2px; text-transform:uppercase; color: var(--accent-turquoise); margin-top: 5px; margin-bottom: 30px; }
+
+        .icon-btn {background: none;border: none;color: var(--text-beige);font-size: 16px;cursor: pointer;padding: 0;}
+        .icon-delete {color: #cc5a46 !important;}
+        .icon-edit { color: var(--accent-turquoise) !important; font-size: 14px; }
+
+        #viewerModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); overflow-y: auto; z-index: 100; padding: 30px; box-sizing: border-box; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; }
+        .cat-title { color: var(--accent-terracotta); text-transform: uppercase; font-size: 14px; margin-top: 30px; text-align: left; border-left: 3px solid; padding-left: 10px; }
+        
+        .add-row { display: flex; gap: 5px; margin-top: 10px; }
+        .btn-inline-add {color: var(--accent-turquoise);font-size: 19px;border: none;background: transparent;padding: 0 10px;cursor: pointer;}
+        .btn-add {background: transparent;color: var(--text-beige);border: 1px dashed #444;width: 100%;padding: 10px;cursor: pointer;font-size: 11px;margin-top: 11px;}
+        .actions { display: flex; gap: 10px }
+
+        .hidden { display: none; }
+        #loading { position: fixed; top: 10px; left: 10px; font-size: 10px; color: var(--accent-terracotta); z-index: 9999; }
+        
+        /* Auth Styles */
+        #authOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+
+<div id="loading">ՄԻԱՑՈՒՄ...</div>
+
+<div id="authOverlay">
+    <div class="container">
+        <h1 style="font-size: 22px;">ՄՈՒՏՔ</h1>
+        <div class="small-text">Identification Required</div>
+        <input type="email" id="authEmail" placeholder="ԷԼ. ՓՈՍՏ">
+        <input type="password" id="authPass" placeholder="ԳԱՂՏՆԱԲԱՌ">
+        <button class="main-btn btn-start" onclick="handleAuth('login')">ՄՈՒՏՔ</button>
+        <button class="main-btn" style="background:transparent; color:var(--text-beige); border:1px solid #444; font-size:11px;" onclick="handleAuth('signup')">ԳՐԱՆՑՈՒՄ</button>
+    </div>
+</div>
+
+<div id="mainUI" class="hidden">
+    <div class="container" id="menuScreen">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span id="userDisplay" style="font-size: 9px; color: var(--accent-turquoise);"></span>
+            <button class="icon-btn" onclick="logout()" style="font-size: 10px;">ԵԼՔ ✕</button>
+        </div>
+        <div class="title-group">
+            <h1>Ո՞Վ Է ԴԱՎԱՃԱՆԸ</h1>
+            <div class="small-text">գաղտնի տեղեկատվություն // սահմանափակ մուտք</div>
+        </div>
+        
+        <div class="setup-group">
+            <label>Գործակալների ցուցակ</label>
+            <div id="playerInputsContainer"></div>
+            <button class="btn-add" onclick="addPlayerField()">+ ԱՎԵԼԱՑՆԵԼ ԱՆՈՒՆ</button>
+        </div>
+
+        <div class="setup-group" style="display:flex; gap:10px;">
+            <div style="flex:2">
+                <label>Կատեգորիա</label>
+                <select id="categorySelect"></select>
+            </div>
+            <div style="flex:1">
+                <label>Լրտես</label>
+                <input type="number" id="spyCount" value="1" min="1">
+            </div>
+        </div>
+
+        <button class="main-btn btn-start" onclick="startGame()">ՍԿՍԵԼ ԽԱՂԸ</button>
+        <button id="adminBtn" class="main-btn btn-view hidden" onclick="toggleViewer(true)">ՏՎՅԱԼՆԵՐԻ ՊԱՀՈՑ</button>
+    </div>
+</div>
+
+<div id="viewerModal" class="hidden">
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 18px; color: var(--accent-turquoise); font-family: 'Montserratarm-Bold';">ՏՎՅԱԼՆԵՐԻ ՊԱՀՈՑ</h2>
+        <button class="icon-btn" onclick="toggleViewer(false)" style="font-size: 24px;">✕</button>
+    </div>
+    <div id="viewerContent"></div>
+</div>
+
+<div class="container hidden" id="passScreen">
+    <h2 id="playerTurnTitle" style="color:white; text-transform: uppercase; font-family: 'Montserratarm-Bold';"></h2>
+    <p style="color:var(--accent-turquoise)">ՀԵՐԹԸ ՔՈՆՆ Է</p>
+    <button class="main-btn btn-start" onclick="revealRole()">ՏԵՍՆԵԼ</button>
+</div>
+
+<div class="container hidden" id="roleScreen">
+    <div id="roleDisplay" style="padding: 50px 20px; border: 3px solid var(--accent-terracotta); font-size: 24px; font-weight: bold; margin: 20px 0; font-family: 'Montserratarm-Bold';"></div>
+    <button class="main-btn btn-start" style="background: var(--accent-terracotta)" onclick="nextPlayer()">ԹԱՔՑՆԵԼ</button>
+</div>
+
+<script>
+    const SB_URL = "https://svxmabbzipfdsjaeuoei.supabase.co";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2xG1hYmJ6aXBmZHNqYWV1b2VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MzU1NjgsImV4cCI6MjA4OTUxMTU2OH0.Sz7y07tOj2IDK224LoQ7XpdpyFtdnM4GUtv9adgHqbU";
+    const supabase = supabase.createClient(SB_URL, SB_KEY);
+
+    let currentUser = null;
+    let categories = {};
+    let players = [];
+    let currentIdx = 0;
+
+    // --- AUTH LOGIC ---
+    async function handleAuth(type) {
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPass').value;
+        if (!email || !password) return alert("Լրացրեք դաշտերը");
+
+        const { data, error } = (type === 'login') 
+            ? await supabase.auth.signInWithPassword({ email, password })
+            : await supabase.auth.signUp({ email, password });
+
+        if (error) alert(error.message);
+        else checkSession();
+    }
+
+    async function logout() { await supabase.auth.signOut(); location.reload(); }
+
+    async function checkSession() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            currentUser = user;
+            document.getElementById('authOverlay').classList.add('hidden');
+            document.getElementById('mainUI').classList.remove('hidden');
+            document.getElementById('userDisplay').innerText = user.email.toUpperCase();
+            
+            // Check Admin
+            const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+            if (profile?.is_admin) document.getElementById('adminBtn').classList.remove('hidden');
+
+            loadUserPlayers();
+            fetchWords();
+        }
+    }
+
+    // --- PLAYER SYNC LOGIC ---
+    async function loadUserPlayers() {
+        const { data } = await supabase.from('user_players').select('name').order('created_at', { ascending: true });
+        const container = document.getElementById('playerInputsContainer');
+        container.innerHTML = "";
+        if (data && data.length > 0) {
+            data.forEach(p => addPlayerField(p.name, false));
+        } else {
+            ["ԱՐԱՄ", "ԱՆԻ", "ԿԱՐԵՆ"].forEach(n => addPlayerField(n, true));
+        }
+    }
+
+    async function syncPlayers() {
+        if (!currentUser) return;
+        const names = Array.from(document.querySelectorAll('.player-name-input')).map(i => i.value.trim()).filter(n => n);
+        
+        await supabase.from('user_players').delete().eq('user_id', currentUser.id);
+        if (names.length > 0) {
+            await supabase.from('user_players').insert(names.map(n => ({ name: n, user_id: currentUser.id })));
+        }
+    }
+
+    function addPlayerField(name = "", shouldSync = true) {
+        const div = document.createElement('div');
+        div.className = 'player-row';
+        div.innerHTML = `<input type="text" class="player-name-input" placeholder="ԱՆՈՒՆ" value="${name}" onchange="syncPlayers()">
+                         <button class="icon-btn icon-delete" onclick="this.parentElement.remove(); syncPlayers();">✕</button>`;
+        document.getElementById('playerInputsContainer').appendChild(div);
+        if (shouldSync) syncPlayers();
+    }
+
+    // --- WORD DATABASE LOGIC ---
+    async function fetchWords() {
+        document.getElementById('loading').style.display = 'block';
+        try {
+            const { data } = await supabase.from('spy_words').select('*').order('category', { ascending: true });
+            categories = {};
+            data.forEach(item => {
+                if (!categories[item.category]) categories[item.category] = [];
+                categories[item.category].push(item);
+            });
+            updateDropdown();
+            if (!document.getElementById('viewerModal').classList.contains('hidden')) renderViewer();
+        } catch (error) { console.error(error); }
+        document.getElementById('loading').style.display = 'none';
+    }
+
+    async function addWord(category) {
+        const input = document.getElementById(`new-word-${category}`);
+        const word = input.value.trim();
+        if (!word) return;
+        await supabase.from('spy_words').insert([{ category, word }]);
+        fetchWords();
+    }
+
+    async function deleteWord(id) {
+        if (!confirm("Ջնջե՞լ այս բառը։")) return;
+        await supabase.from('spy_words').delete().eq('id', id);
+        fetchWords();
+    }
+
+    async function editWord(id, oldWord) {
+        const newWord = prompt("Խմբագրել բառը․", oldWord);
+        if (newWord && newWord.trim() !== oldWord) {
+            await supabase.from('spy_words').update({ word: newWord.trim() }).eq('id', id);
+            fetchWords();
+        }
+    }
+
+    // --- UI HELPERS ---
+    function updateDropdown() {
+        const select = document.getElementById('categorySelect');
+        const currentVal = select.value;
+        select.innerHTML = '';
+        Object.keys(categories).forEach(cat => {
+            let opt = document.createElement('option');
+            opt.value = opt.innerText = cat;
+            select.appendChild(opt);
+        });
+        if (currentVal) select.value = currentVal;
+    }
+
+    function renderViewer() {
+        const content = document.getElementById('viewerContent');
+        content.innerHTML = "";
+        for (let cat in categories) {
+            let catHtml = `<h3 class="cat-title">${cat}</h3>`;
+            categories[cat].forEach(item => {
+                catHtml += `
+                <div class="list-item">
+                    <span>${item.word}</span>
+                    <div class="actions">
+                        <button class="icon-btn icon-edit" onclick="editWord(${item.id}, '${item.word}')">✎</button>
+                        <button class="icon-btn icon-delete" onclick="deleteWord(${item.id})">✕</button>
+                    </div>
+                </div>`;
+            });
+            catHtml += `<div class="add-row"><input type="text" id="new-word-${cat}" placeholder="Նոր բառ..."><button class="btn-inline-add" onclick="addWord('${cat}')">+</button></div>`;
+            content.innerHTML += catHtml;
+        }
+    }
+
+    function toggleViewer(show) {
+        document.getElementById('viewerModal').classList.toggle('hidden', !show);
+        if (show) renderViewer();
+    }
+
+    // --- GAME LOGIC ---
+    function startGame() {
+        const names = Array.from(document.querySelectorAll('.player-name-input')).map(i => i.value.trim()).filter(n => n !== "");
+        const cat = document.getElementById('categorySelect').value;
+        const spyCount = parseInt(document.getElementById('spyCount').value) || 1;
+        if (names.length < 3) return alert("Ավելացրեք առնվազն 3 գործակալ");
+        
+        const wordList = categories[cat];
+        const secretWord = wordList[Math.floor(Math.random() * wordList.length)].word;
+        players = names.map(n => ({ name: n, role: secretWord }));
+
+        let assigned = 0;
+        while (assigned < spyCount) {
+            let idx = Math.floor(Math.random() * players.length);
+            if (players[idx].role !== "ԼՐՏԵՍ") { players[idx].role = "ԼՐՏԵՍ"; assigned++; }
+        }
+        currentIdx = 0;
+        showScreen('passScreen');
+        document.getElementById('playerTurnTitle').innerText = players[0].name;
+    }
+
+    function revealRole() {
+        showScreen('roleScreen');
+        document.getElementById('roleDisplay').innerText = players[currentIdx].role;
+    }
+
+    function nextPlayer() {
+        currentIdx++;
+        if (currentIdx >= players.length) {
+            showScreen('menuScreen');
+        } else {
+            showScreen('passScreen');
+            document.getElementById('playerTurnTitle').innerText = players[currentIdx].name;
+        }
+    }
+
+    function showScreen(id) {
+        ['menuScreen', 'passScreen', 'roleScreen'].forEach(s => {
+            const el = document.getElementById(s);
+            if (el) el.classList.add('hidden');
+        });
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    // Initialize
+    checkSession();
+</script>
+</body>
+</html>
