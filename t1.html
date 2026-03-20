@@ -88,7 +88,7 @@
         
         .add-row { display: flex; gap: 5px; margin-top: 10px; }
         .add-row input { height: 35px; font-size: 14px; }
-        .btn-inline-add { background: var(--accent-turquoise); color: white; border: none; padding: 0 15px; cursor: pointer; }
+        .btn-inline-add { color: var(--accent-turquoise); font-size: 16; border: none; padding: 0 15px; cursor: pointer; }
         .btn-add { background: transparent; color: var(--text-beige); border: 1px dashed #444; width: 100%; padding: 10px; cursor: pointer; font-size: 11px; margin-top: 5px; }
 
         .hidden { display: none; }
@@ -222,7 +222,7 @@
             catHtml += `
             <div class="add-row">
                 <input type="text" id="new-word-${cat}" placeholder="Նոր բառ...">
-                <button  class="btn-add" onclick="addWord('${cat}')">+</button>
+                <button  class="btn-inline-add" onclick="addWord('${cat}')">+</button>
             </div>`;
             content.innerHTML += catHtml;
         }
