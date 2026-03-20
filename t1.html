@@ -73,12 +73,16 @@
         }
         .btn-start { background: var(--accent-terracotta); color: white; }
         .btn-view { background: transparent; color: var(--accent-turquoise); border: 1px solid var(--accent-turquoise); font-size: 11px; margin-top: 30px; }
-        .player-row { position: relative; }
+        .player-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
         .small-text { font-size: 9px; letter-spacing: 3px; text-transform:uppercase; color: var(--accent-turquoise); margin-top: 5px; margin-bottom: 30px; }
 
-        .icon-btn {background: none;border: none;color: var(--text-beige);font-size: 16px;cursor: pointer;padding: 5px;opacity: 0.7;}
+        .icon-btn {background: none;border: none;color: var(--text-beige);font-size: 16px;cursor: pointer;padding: 0;}
         .icon-btn:hover { opacity: 1; }
-        .icon-delete {color: #cc5a46 !important;position: absolute;right: 6px;top: 5px;}
+        .icon-delete {color: #cc5a46 !important;}
         .icon-edit { color: var(--accent-turquoise) !important; font-size: 14px; }
 
         /* Տվյալների պահոցի ոճերը */
@@ -89,7 +93,7 @@
         .add-row { display: flex; gap: 5px; margin-top: 10px; }
         .add-row input { height: 35px; font-size: 14px; }
         .btn-inline-add {color: var(--accent-turquoise);font-size: 19px;border: none;background: transparent;padding: 0 10px;cursor: pointer;}
-        .btn-add { background: transparent; color: var(--text-beige); border: 1px dashed #444; width: 100%; padding: 10px; cursor: pointer; font-size: 11px; margin-top: 5px; }
+        .btn-add {background: transparent;color: var(--text-beige);border: 1px dashed #444;width: 100%;padding: 10px;cursor: pointer;font-size: 11px;margin-top: 11px;}
 
         .hidden { display: none; }
         #loading { position: fixed; top: 10px; left: 10px; font-size: 10px; color: var(--accent-terracotta); z-index: 9999; }
